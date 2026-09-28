@@ -48,6 +48,22 @@ async def _obtener_tipo_vehiculo(vehiculo_id: str):
         return None
 
 
+async def _marcar_vehiculo_en_mantenimiento(vehiculo_id: str):
+    """Cierra el hueco de 'vehiculos.estado nunca cambia': ante una alerta
+    crítica (no las preventivas por kilometraje/OBD2, esas son solo aviso
+    de programar servicio), el vehículo se retira de servicio en Fleet."""
+    if not FLEET_SERVICE_URL or not vehiculo_id:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.patch(
+                f"{FLEET_SERVICE_URL}/vehiculos/{vehiculo_id}/estado",
+                json={"estado": "en_mantenimiento"},
+            )
+    except Exception as exc:
+        print(f"[maintenance] no se pudo marcar el vehículo {vehiculo_id} en_mantenimiento: {exc}")
+
+
 def _ultimo_kilometraje_servicio(db: Session, vehiculo_id):
     ultima = (
         db.query(IntervencionMantenimiento)
@@ -119,6 +135,7 @@ async def _procesar_telemetry_raw(payload: dict):
                 "temperatura_motor_c": float(temperatura_motor),
                 "prioridad": "critica",
             })
+            await _marcar_vehiculo_en_mantenimiento(str(vehiculo_id))
 
         if codigo_obd2:
             _crear_o_actualizar_programa(db, vehiculo_id, "diagnostico_obd2", "alta")
