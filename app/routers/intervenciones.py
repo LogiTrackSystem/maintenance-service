@@ -3,6 +3,7 @@ from typing import List
 from uuid import UUID
 
 import httpx
+from ..interno import cabeceras_internas
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -21,7 +22,7 @@ async def _liberar_vehiculo(vehiculo_id):
     if not FLEET_SERVICE_URL or not vehiculo_id:
         return
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=5.0, headers=cabeceras_internas()) as client:
             await client.patch(
                 f"{FLEET_SERVICE_URL}/vehiculos/{vehiculo_id}/estado",
                 json={"estado": "active"},
