@@ -3,6 +3,7 @@ import os
 import uuid
 import aio_pika
 import httpx
+from .interno import cabeceras_internas
 from sqlalchemy.orm import Session
 
 from .database import SessionLocal
@@ -40,7 +41,7 @@ async def _obtener_tipo_vehiculo(vehiculo_id: str):
     if not FLEET_SERVICE_URL:
         return None
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=5.0, headers=cabeceras_internas()) as client:
             resp = await client.get(f"{FLEET_SERVICE_URL}/vehiculos/{vehiculo_id}")
             resp.raise_for_status()
             return resp.json().get("tipo")
@@ -55,7 +56,7 @@ async def _marcar_vehiculo_en_mantenimiento(vehiculo_id: str):
     if not FLEET_SERVICE_URL or not vehiculo_id:
         return
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=5.0, headers=cabeceras_internas()) as client:
             await client.patch(
                 f"{FLEET_SERVICE_URL}/vehiculos/{vehiculo_id}/estado",
                 json={"estado": "en_mantenimiento"},
